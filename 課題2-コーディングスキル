@@ -1,0 +1,85 @@
+enum {
+    HIGH_CARD = 0,
+    ONE_PAIR,
+    TWO_PAIR,
+    THREE_OF_A_KIND,
+    STRAIGHT,
+    FLUSH,
+    FULL_HOUSE,
+    FOUR_OF_A_KIND,
+    STRAIGHT_FLUSH,
+    N_KIND_HAND,
+};
+// v のサイズは 7以下とする
+// 要素はソートされていないものとする
+int checkHand(const std::vector<Card> &v)
+{
+    std::vector<int> rcnt(13, 0);
+    std::vector<int> scnt(4, 0);
+    //int rcnt[13] = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
+    //int scnt[4] = {0, 0, 0, 0};
+    for (uint i = 0; i < v.size(); ++i) {
+        const Card c = v[i];
+        rcnt[c.m_rank] += 1;
+        scnt[c.m_suit] += 1;
+    }
+    int s = -1;
+    if( scnt[s = 0] >= 5 || scnt[s = 1] >= 5 || scnt[s = 2] >= 5 || scnt[s = 3] >= 5 ) {
+        // フラッシュ確定
+        uint bitmap = 0;
+        for (uint i = 0; i < v.size(); ++i) {
+            const Card c = v[i];
+            if( c.m_suit == s )
+                bitmap |= 1 << (c.m_rank);
+        }
+        uint mask = 0x1f00;       // AKQJT
+        for (int i = 0; i < 9; ++i, mask>>=1) {
+            if( (bitmap & mask) == mask ) {
+                return STRAIGHT_FLUSH;
+            }
+        }
+        if( bitmap == 0x100f )// 1 0000 00000 1111 = A5432
+            return STRAIGHT_FLUSH;
+    } else
+        s = -1;
+    int threeOfAKindIX = -1;
+    int pairIX1 = -1;
+    int pairIX2 = -1;
+    for (int i = 0; i < 13; ++i) {
+        switch( rcnt[i] ) {
+            case 4:
+                return FOUR_OF_A_KIND;
+            case 3:
+                threeOfAKindIX = i;
+                break;
+            case 2:
+                pairIX2 = pairIX1;
+                pairIX1 = i;
+                break;
+        }
+    }
+    if( threeOfAKindIX >= 0 && pairIX1 >= 0 )
+        return FULL_HOUSE;
+    if( s >= 0 )
+        return FLUSH;
+    uint bitmap = 0;
+    uint mask = 1;
+    for (int i = 0; i < 13; ++i, mask<<=1) {
+        if( rcnt[i] != 0 )
+            bitmap |= mask;
+    }
+    mask = 0x1f00;     // AKQJT
+    for (int i = 0; i < 9; ++i, mask>>=1) {
+        if( (bitmap & mask) == mask )
+            return STRAIGHT;
+    }
+    if( bitmap == 0x100f )// 1 0000 00000 1111 = A5432
+        return STRAIGHT;
+    if( threeOfAKindIX >= 0 )
+        return THREE_OF_A_KIND;
+    if( pairIX2 >= 0 )
+        return TWO_PAIR;
+    if( pairIX1 >= 0 )
+        return ONE_PAIR;
+    return HIGH_CARD;
+}
